@@ -23,7 +23,14 @@ def redeem():
         pid = data.get('pid')
         code = data.get('code')
 
-        # ข้อมูล Headers และ Params ตามที่คุณระบุมาเพื่อให้เซิร์ฟเวอร์ยอมรับ
+        # URL และ Headers ตามโครงสร้างที่คุณระบุ
+        url = "https://coupon.netmarble.com/api/coupon/reward"
+        params = {
+            "gameCode": "tskgb",
+            "langCd": "TH_TH",
+            "pid": pid,
+            "couponCode": code.strip()
+        }
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
@@ -32,20 +39,11 @@ def redeem():
             "Referer": "https://coupon.netmarble.com/tskgb"
         }
 
-        params = {
-            "gameCode": "tskgb",
-            "langCd": "TH_TH",
-            "pid": pid,
-            "couponCode": code.strip()
-        }
-
-        url = "https://coupon.netmarble.com/api/coupon/reward"
+        # ส่งแบบ GET ตามภาพ Network
         response = requests.get(url, params=params, headers=headers, timeout=10)
-        
         return jsonify(response.json())
-    
     except Exception as e:
-        return jsonify({"resultCode": "ERROR", "resultMsg": f"ระบบขัดข้อง: {str(e)}"}), 200
+        return jsonify({"resultCode": "ERROR", "resultMsg": str(e)}), 200
 
 def handler(req, res):
     return app(req, res)
