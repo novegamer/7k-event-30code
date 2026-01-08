@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 import requests
 
+# ต้องประกาศไว้ที่นี่เพื่อให้ Vercel ตรวจพบ
 app = Flask(__name__)
 
-# รายการโค้ดทั้งหมดที่เก็บไว้หลังบ้าน
+# รายการโค้ดที่เก็บไว้หลังบ้าน
 OFFICIAL_CODES = [
     "SUNWUKONGNO1", "HAPPYNEWYEAR2026", "7S7E7V7E7N7", "DANCINGPOOKI", 
     "BRANZEBRANSEL", "GRACEOFCHAOS", "SENAHAJASENA", "CHAOSESSENCE", 
@@ -23,6 +24,7 @@ def redeem():
         pid = data.get('pid')
         code = data.get('code')
 
+        # ข้อมูลสำหรับส่งไปยัง Netmarble
         url = "https://coupon.netmarble.com/api/coupon/reward"
         params = {
             "gameCode": "tskgb",
@@ -38,10 +40,10 @@ def redeem():
             "Referer": "https://coupon.netmarble.com/tskgb"
         }
 
+        # ส่งคำขอแบบ GET ตามที่คุณตรวจสอบพบ
         response = requests.get(url, params=params, headers=headers, timeout=10)
-        return jsonify(response.json()) # ส่ง JSON ทั้งก้อนกลับไป
+        return jsonify(response.json())
+    
     except Exception as e:
-        return jsonify({"errorCode": 500, "errorMessage": str(e)}), 200
-
-def handler(req, res):
-    return app(req, res)
+        # ป้องกัน Error 500 โดยการส่ง JSON กลับไปแทน
+        return jsonify({"resultCode": "ERROR", "resultMsg": f"Backend Error: {str(e)}"}), 200
