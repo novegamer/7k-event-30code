@@ -23,7 +23,6 @@ def redeem():
         pid = data.get('pid')
         code = data.get('code')
 
-        # ใช้ข้อมูล GET Request ตามรูป image_4bdf67.png
         url = "https://coupon.netmarble.com/api/coupon/reward"
         params = {
             "gameCode": "tskgb",
@@ -40,6 +39,9 @@ def redeem():
         }
 
         response = requests.get(url, params=params, headers=headers, timeout=10)
-        return jsonify(response.json())
+        return jsonify(response.json()) # ส่ง JSON ทั้งก้อนกลับไป
     except Exception as e:
-        return jsonify({"resultCode": "ERROR", "resultMsg": f"Backend Error: {str(e)}"}), 200
+        return jsonify({"errorCode": 500, "errorMessage": str(e)}), 200
+
+def handler(req, res):
+    return app(req, res)
