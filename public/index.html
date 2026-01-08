@@ -45,17 +45,31 @@
     </div>
 
     <script>
-async function startAutoRedeem() {
-    // ... โค้ดส่วนดึง PID และรายการโค้ด ...
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    for (let code of codes) {
-        try {
-            const response = await fetch('/api/redeem', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ pid, code })
-            });
-            const data = await response.json();
+async function startAutoRedeem() {
+    const pid = document.getElementById('pid').value.trim();
+    // ... (ส่วนโค้ดเตรียมความพร้อมอื่นๆ) ...
+
+    for (let i = 0; i < codes.length; i++) {
+        const code = codes[i];
+        
+        // --- ส่วนที่เพิ่มการหน่วงเวลา ---
+        if (i > 0) { // ไม่ต้องรอในโค้ดแรก เริ่มรอตั้งแต่โค้ดที่สองเป็นต้นไป
+            document.getElementById('pStatus').innerText = `รอสักครู่... ก่อนเติมโค้ดถัดไป`;
+            await sleep(1500); // หน่วงเวลา 1.5 วินาที
+        }
+        // -----------------------------
+
+        document.getElementById('pStatus').innerText = `กำลังแลก: ${code}`;
+        
+        // ยิง API แลกของตามปกติ
+        const response = await fetch('/api/redeem', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ pid, code })
+        });
+        const data = await response.json();
             
             // --- ส่วนที่ต้องแก้ไข: การเช็คผลลัพธ์ที่แท้จริง ---
             // จากข้อมูลที่คุณส่งมา: SUCCESS คือสำเร็จ, 24004 คือใช้ไปแล้ว
