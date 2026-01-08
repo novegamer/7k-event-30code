@@ -21,7 +21,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-2">UID</label>
-                    <input type="text" id="pid" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-200 transition-all" placeholder="ใส่ Player ID">
+                    <input type="text" id="playerId" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-200 transition-all" placeholder="ใส่ Player ID">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-2">รายการโค้ด (แยกด้วยการขึ้นบรรทัดใหม่)</label>
@@ -53,7 +53,7 @@
 
     <script>
         async function runRedeem() {
-            const pid = document.getElementById('pid').value.trim();
+            const playerId = document.getElementById('playerId').value.trim();
             const codes = document.getElementById('codes').value.split('\n').filter(c => c.trim() !== "");
             const btn = document.getElementById('btn');
             const progressContainer = document.getElementById('progressContainer');
@@ -63,7 +63,7 @@
             const resultsList = document.getElementById('resultsList');
             const summary = document.getElementById('summary');
 
-            if (!pid || codes.length === 0) return alert("กรุณากรอกข้อมูลให้ครบ");
+            if (!playerId || codes.length === 0) return alert("กรุณากรอกข้อมูลให้ครบ");
 
             btn.classList.add('hidden');
             progressContainer.classList.remove('hidden');
@@ -91,7 +91,7 @@
                     const response = await fetch('/api/redeem', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ pid, code })
+                        body: JSON.stringify({ playerId, code })
                     });
                     const data = await response.json();
                     
