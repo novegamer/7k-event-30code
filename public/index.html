@@ -45,58 +45,58 @@
     </div>
 
     <script>
-        async function startAutoRedeem() {
-            const pid = document.getElementById('pid').value.trim();
-            if(!pid) return alert("กรุณาใส่ PID");
+async function startAutoRedeem() {
+    // ... โค้ดส่วนดึง PID และรายการโค้ด ...
 
-            const btn = document.getElementById('btn');
-            const resCard = document.getElementById('resCard');
-            const resList = document.getElementById('resList');
-            const pBar = document.getElementById('pBar');
+    for (let code of codes) {
+        try {
+            const response = await fetch('/api/redeem', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ pid, code })
+            });
+            const data = await response.json();
+            
+            // --- ส่วนที่ต้องแก้ไข: การเช็คผลลัพธ์ที่แท้จริง ---
+            // จากข้อมูลที่คุณส่งมา: SUCCESS คือสำเร็จ, 24004 คือใช้ไปแล้ว
+            const isOk = (data.errorMessage === "SUCCESS" || data.errorCode === 200);
+            const isUsed = (data.errorCode === 24004 || data.errorCode === "24004");
+            const isInvalidPid = (data.errorCode === 20002); // ตัวอย่าง Error PID ผิด
 
-            btn.disabled = true;
-            btn.innerText = "กำลังดำเนินการ...";
-            resCard.classList.remove('hidden');
-            resList.innerHTML = "";
-            document.getElementById('progressArea').classList.remove('hidden');
+            const row = document.createElement('div');
+            row.className = `flex justify-between p-3 bg-[#0b0f1a] rounded-xl border-l-4 ${isOk ? 'border-green-500' : 'border-orange-500'}`;
+            
+            let displayStatus = "";
+            let colorClass = "";
 
-            try {
-                const codeRes = await fetch('/api/get-codes');
-                const { codes } = await codeRes.json();
-
-                for (let i = 0; i < codes.length; i++) {
-                    const code = codes[i];
-                    const percent = Math.round(((i + 1) / codes.length) * 100);
-                    pBar.style.width = percent + "%";
-                    document.getElementById('pPercent').innerText = percent + "%";
-                    document.getElementById('pStatus').innerText = `แลก: ${code}`;
-
-                    const response = await fetch('/api/redeem', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ pid, code })
-                    });
-                    const data = await response.json();
-                    
-                    const isOk = data.errorMessage === "SUCCESS";
-                    const isAlreadyUsed = data.errorCode === 24004;
-                    const rewardName = isOk && data.resultData ? data.resultData[0].productName : null;
-
-                    const row = document.createElement('div');
-                    row.className = `flex justify-between p-3 bg-[#0b0f1a] rounded-xl border-l-4 ${isOk ? 'border-green-500' : 'border-orange-500'}`;
-                    
-                    let statusText = isOk ? `สำเร็จ: ${rewardName}` : (isAlreadyUsed ? "ใช้งานแล้ว" : data.errorMessage);
-                    let statusClass = isOk ? 'text-green-500' : 'text-orange-500';
-
-                    row.innerHTML = `<span class="text-xs font-mono font-bold">${code}</span><span class="text-[9px] font-black ${statusClass} uppercase text-right ml-2">${statusText}</span>`;
-                    resList.prepend(row);
-                }
-                btn.innerText = "ดำเนินการเสร็จสิ้น";
-            } catch (e) {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-                btn.disabled = false;
+            if (isOk) {
+                // ถ้าสำเร็จ ให้ดึงชื่อไอเทมจาก resultData มาโชว์
+                const itemName = (data.resultData && data.resultData[0]) ? data.resultData[0].productName : "สำเร็จ";
+                displayStatus = `ได้รับ: ${itemName}`;
+                colorClass = "text-green-500";
+            } else if (isUsed) {
+                displayStatus = "ใช้งานไปแล้ว";
+                colorClass = "text-orange-400";
+            } else if (isInvalidPid) {
+                displayStatus = "PID ไม่ถูกต้อง";
+                colorClass = "text-red-500";
+            } else {
+                displayStatus = data.errorMessage || "เกิดข้อผิดพลาด";
+                colorClass = "text-red-400";
             }
+
+            row.innerHTML = `
+                <span class="text-xs font-mono font-bold">${code}</span>
+                <span class="text-[10px] font-black ${colorClass} uppercase text-right ml-2">${displayStatus}</span>
+            `;
+            resList.prepend(row);
+            // -------------------------------------------
+
+        } catch (e) {
+            console.error("Error:", e);
         }
+    }
+}
     </script>
 </body>
 </html>
