@@ -2,77 +2,64 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>7K Rebirth Cloud Batch Redeemer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7K Rebirth Coupon Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-200 min-h-screen flex items-center justify-center p-4">
-
-    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
-        <h1 class="text-xl font-bold text-center mb-6 text-indigo-400">BATCH REDEEM (CLOUD)</h1>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-700">
+        <h1 class="text-2xl font-bold text-yellow-500 text-center mb-6">7K Rebirth Coupon</h1>
         
         <div class="space-y-4">
-            <input type="text" id="pid" class="w-full bg-black border border-slate-700 rounded-xl p-4 text-center text-xl font-mono text-indigo-300 outline-none focus:border-indigo-500" placeholder="กรอก UID (Member Code)">
-            
-            <button onclick="startBatchRedeem()" id="btnStart" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2">
-                <span id="btnText">🚀 เริ่มเติมโค้ดทั้งหมด (Server-side)</span>
-            </button>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">Player ID (PID)</label>
+                <input type="text" id="pid" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-500 outline-none" placeholder="ใส่ PID ของคุณ">
+            </div>
+            <div>
+                <label class="block text-sm text-gray-400 mb-1">รายการโค้ด (บรรทัดละ 1 โค้ด)</label>
+                <textarea id="codes" rows="5" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-500 outline-none" placeholder="ใส่โค้ดที่นี่..."></textarea>
+            </div>
+            <button onclick="runRedeem()" id="btn" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg transition-all">เริ่มเติมโค้ด</button>
         </div>
 
-        <div id="statusArea" class="mt-6 hidden">
-            <div class="flex items-center gap-3 mb-4 p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                <div class="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent"></div>
-                <span class="text-xs text-indigo-400">ระบบ Cloud กำลังทำงาน... กรุณารอประมาณ 1-2 นาที</span>
-            </div>
-            
-            <pre id="logBox" class="w-full bg-black rounded-xl p-4 text-[10px] font-mono text-slate-400 h-64 overflow-y-auto whitespace-pre-wrap border border-slate-800"></pre>
-        </div>
+        <div id="results" class="mt-6 space-y-2 max-h-60 overflow-y-auto"></div>
     </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzEfHbeWoQ73gYKpyWrT1M0Tj4WNw0OXmxj64cNIT-A4QLDH6aXcJNSl9PMunwq4B5H/exec";
-        
-        const CODES = [
-            "HAPPYNEWYEAR2026", "7S7E7V7E7N7", "DANCINGPOOKI", "BRANZEBRANSEL", 
-            "GRACEOFCHAOS", "SENAHAJASENA", "CHAOSESSENCE", "77EVENT77", 
-            "100MILLIONHEARTS", "KEYKEYKEY", "POOKIFIVEKINDS", "LETSGO7K", 
-            "GOLDENKINGPEPE", "HALFGOODHALFEVIL", "DELLONSVSKRIS", "TARGETWISH", "OBLIVION" ,"SENASTARCRYSTAL" , "SENA77MEMORY"
-        ];
+        async function runRedeem() {
+            const pid = document.getElementById('pid').value;
+            const codes = document.getElementById('codes').value.split('\n').filter(c => c.trim() !== "");
+            const btn = document.getElementById('btn');
+            const resDiv = document.getElementById('results');
 
-        function startBatchRedeem() {
-            const pid = document.getElementById('pid').value.trim();
-            if(!pid) return alert("กรุณาใส่ UID");
+            if (!pid || codes.length === 0) return alert("กรุณากรอกข้อมูลให้ครบ");
 
-            // ล็อกหน้าจอ
-            document.getElementById('btnStart').disabled = true;
-            document.getElementById('btnText').innerText = "กำลังประมวลผลบน Cloud...";
-            document.getElementById('statusArea').classList.remove('hidden');
-            document.getElementById('logBox').innerText = "กำลังส่งคำขอไปยัง Google Server...\nกรุณาอย่าปิดหน้านี้จนกว่าจะเสร็จสิ้น";
+            btn.disabled = true;
+            btn.innerText = "กำลังประมวลผล...";
+            resDiv.innerHTML = "";
 
-            // ใช้ JSONP เพื่อส่งข้อมูลและรับผลลัพธ์ข้ามโดเมน
-            const script = document.createElement('script');
-            const callbackName = 'handleResponse';
-            
-            // สร้างฟังก์ชันรอรับผลลัพธ์
-            window[callbackName] = function(data) {
-                document.getElementById('logBox').innerText = data.summary;
-                document.getElementById('btnStart').disabled = false;
-                document.getElementById('btnText').innerText = "✅ เติมเสร็จสิ้นแล้ว!";
-                alert("ระบบเติมโค้ดครบทุกรายการแล้วครับ");
-                delete window[callbackName];
-                document.body.removeChild(script);
-            };
-
-            // ยิง Request แบบ GET (ส่งโค้ดทั้งหมดไปในทีเดียว)
-            script.src = `${GAS_URL}?pid=${pid}&codes=${CODES.join(',')}&callback=${callbackName}`;
-            document.body.appendChild(script);
+            try {
+                const response = await fetch('/api/redeem', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ pid, codes })
+                });
+                const data = await response.json();
+                
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between p-2 bg-gray-700 rounded text-sm border-l-4 " + 
+                                    (item.status.includes('สำเร็จ') ? 'border-green-500' : 'border-red-500');
+                    div.innerHTML = `<span>${item.code}</span><span class="text-gray-300">${item.status}</span>`;
+                    resDiv.appendChild(div);
+                });
+            } catch (e) {
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "เริ่มเติมโค้ด";
+            }
         }
-
-        window.onload = () => {
-            const saved = localStorage.getItem('tsk_pid_cloud');
-            if(saved) document.getElementById('pid').value = saved;
-        };
-        
-        document.getElementById('pid').oninput = (e) => localStorage.setItem('tsk_pid_cloud', e.target.value);
     </script>
 </body>
 </html>
