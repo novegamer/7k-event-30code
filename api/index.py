@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify
 import requests
 
-# ประกาศ app ไว้ที่ระดับนอกสุดเพื่อให้ Vercel ตรวจพบได้ทันที
 app = Flask(__name__)
 
-# รายการโค้ดที่บันทึกไว้หลังบ้าน
+# รายการโค้ด Official ที่คุณต้องการ
 OFFICIAL_CODES = [
     "SUNWUKONGNO1", "HAPPYNEWYEAR2026", "7S7E7V7E7N7", "DANCINGPOOKI", 
     "BRANZEBRANSEL", "GRACEOFCHAOS", "SENAHAJASENA", "CHAOSESSENCE", 
@@ -13,37 +12,36 @@ OFFICIAL_CODES = [
     "TARGETWISH", "OBLIVION", "SENASTARCRYSTAL", "SENA77MEMORY"
 ]
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Referer": "https://coupon.netmarble.com/tskgb",
+    "Accept": "application/json"
+}
+
 @app.route('/api/get-codes', methods=['GET'])
 def get_codes():
     return jsonify({"codes": OFFICIAL_CODES})
 
+# ขั้นตอนที่ 1: ตรวจสอบ PID (เหมือนปุ่ม Submit ในเว็บจริง)
+@app.route('/api/check-user', methods=['POST'])
+def check_user():
+    pid = request.json.get('pid')
+    url = "https://coupon.netmarble.com/api/coupon/inquiry"
+    params = {"gameCode": "tskgb", "langCd": "TH_TH", "pid": pid}
+    response = requests.get(url, params=params, headers=HEADERS)
+    return jsonify(response.json())
+
+# ขั้นตอนที่ 2: แลกรางวัล (เหมือนปุ่ม Confirm ในเว็บจริง - ตามรูป image_57ad69.png)
 @app.route('/api/redeem', methods=['POST'])
 def redeem():
-    try:
-        data = request.json
-        pid = data.get('pid')
-        code = data.get('code')
-
-        # ใช้ URL และโครงสร้างตามภาพ image_57ad69.png เป๊ะๆ
-        url = "https://coupon.netmarble.com/api/coupon/reward"
-        params = {
-            "gameCode": "tskgb",
-            "couponCode": code.strip(),
-            "langCd": "TH_TH",
-            "pid": pid
-        }
-        
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": "https://coupon.netmarble.com/tskgb",
-            "Accept": "application/json"
-        }
-
-        # ส่งแบบ GET ตามหลักฐานใน Network Tab
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        return jsonify(response.json())
-    
-    except Exception as e:
-        return jsonify({"errorCode": 500, "errorMessage": str(e)}), 200
-
-# ห้ามใส่ def handler หรือ if __name__ == "__main__"
+    data = request.json
+    url = "https://coupon.netmarble.com/api/coupon/reward"
+    params = {
+        "gameCode": "tskgb",
+        "couponCode": data.get('code').strip(),
+        "langCd": "TH_TH",
+        "pid": data.get('pid')
+    }
+    # ใช้ GET Method ตามที่ระบบทางการใช้
+    response = requests.get(url, params=params, headers=HEADERS)
+    return jsonify(response.json())
