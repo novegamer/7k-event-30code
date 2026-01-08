@@ -3,51 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7K Rebirth - One Click Dark</title>
+    <title>7K Rebirth - Auto Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0b0f1a; font-family: 'Kanit', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap');
+        body { font-family: 'Kanit', sans-serif; background-color: #0b0f1a; }
         .dark-card { background: #161b2a; border: 1px solid #2d3748; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 10px; }
     </style>
 </head>
 <body class="text-slate-300 min-h-screen flex flex-col items-center justify-center p-4">
 
     <div class="max-w-md w-full space-y-4">
-        <div class="dark-card rounded-3xl p-10 shadow-2xl text-center">
-            <h1 class="text-2xl font-black text-orange-500 mb-6 uppercase tracking-tighter italic">7K AUTO REDEEM</h1>
+        <div class="dark-card rounded-3xl p-10 shadow-2xl text-center border-t-4 border-orange-500">
+            <h1 class="text-3xl font-black text-orange-500 mb-2 uppercase italic">7K AUTO REBORN</h1>
+            <p class="text-slate-500 text-[10px] mb-8 font-bold uppercase tracking-widest">ใส่ PID เพื่อรับรางวัลทั้งหมด</p>
             
-            <div class="space-y-4 text-left">
-                <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Player ID (PID)</label>
-                <input type="text" id="pid" class="w-full bg-[#0b0f1a] border border-slate-700 rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold text-orange-200" placeholder="ระบุ PID ของคุณ">
+            <div class="space-y-6 text-left">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-2">ระบุ Player ID (PID)</label>
+                    <input type="text" id="pid" class="w-full bg-[#0b0f1a] border border-slate-700 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold text-orange-100" placeholder="ใส่ PID ของคุณ">
+                </div>
 
-                <div id="pArea" class="hidden">
-                    <div class="flex justify-between text-[10px] font-bold text-orange-400 mb-1">
-                        <span id="pStatus">เตรียมระบบ...</span>
+                <div id="userInfo" class="hidden p-4 bg-slate-800/50 rounded-2xl border border-slate-700 text-center animate-pulse">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold">พบบัญชีผู้เล่น</p>
+                    <p id="charName" class="text-emerald-400 font-bold text-lg"></p>
+                </div>
+
+                <div id="progressArea" class="hidden space-y-2">
+                    <div class="flex justify-between text-[10px] text-orange-400 font-bold uppercase">
+                        <span id="pStatus">กำลังดำเนินการ...</span>
                         <span id="pPercent">0%</span>
                     </div>
-                    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                        <div id="pBar" class="bg-orange-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 border border-slate-700 overflow-hidden">
+                        <div id="pBar" class="bg-gradient-to-r from-yellow-500 to-orange-500 h-full transition-all duration-500" style="width: 0%"></div>
                     </div>
                 </div>
 
-                <button onclick="startRedeem()" id="btn" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95">
-                    รับของรางวัลทั้งหมด
+                <button onclick="runAutoProcess()" id="btn" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-5 rounded-2xl shadow-lg transition-all active:scale-95 text-lg">
+                    ยืนยันและรับรางวัลทั้งหมด
                 </button>
             </div>
         </div>
 
         <div id="resCard" class="dark-card rounded-3xl p-6 hidden w-full">
-            <div id="resList" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1"></div>
+            <div id="resList" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar"></div>
         </div>
     </div>
 
     <script>
         const wait = ms => new Promise(r => setTimeout(r, ms));
 
-        async function startRedeem() {
+        async function runAutoProcess() {
             const pid = document.getElementById('pid').value.trim();
             if(!pid) return alert("กรุณาใส่ PID");
 
@@ -57,24 +66,42 @@
             const pBar = document.getElementById('pBar');
 
             btn.disabled = true;
-            btn.innerText = "正在运行 (กำลังทำงาน)...";
-            resCard.classList.remove('hidden');
-            document.getElementById('pArea').classList.remove('hidden');
-            resList.innerHTML = "";
+            btn.innerText = "กำลังตรวจสอบบัญชี...";
 
             try {
+                // Step 1: Submit (Check User)
+                const checkRes = await fetch('/api/check-user', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ pid })
+                });
+                const userData = await checkRes.json();
+
+                if (userData.errorCode !== 200) {
+                    alert("ไม่พบบัญชี: " + (userData.errorMessage || "PID ไม่ถูกต้อง"));
+                    btn.disabled = false;
+                    btn.innerText = "รับของรางวัลทั้งหมด";
+                    return;
+                }
+
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('charName').innerText = userData.resultData.nickname;
+
+                // Step 2: Confirm (Redeem Loop)
                 const { codes } = await (await fetch('/api/get-codes')).json();
+                resCard.classList.remove('hidden');
+                document.getElementById('progressArea').classList.remove('hidden');
+                resList.innerHTML = "";
 
                 for (let i = 0; i < codes.length; i++) {
                     const code = codes[i];
-                    const percent = Math.round(((i + 1) / codes.length) * 100);
+                    const p = Math.round(((i + 1) / codes.length) * 100);
                     
-                    pBar.style.width = percent + "%";
-                    document.getElementById('pPercent').innerText = percent + "%";
+                    pBar.style.width = p + "%";
+                    document.getElementById('pPercent').innerText = p + "%";
                     document.getElementById('pStatus').innerText = `กำลังแลก: ${code}`;
 
-                    // หน่วงเวลา 2 วินาทีเพื่อให้ระบบ Netmarble ประมวลผลทัน
-                    if (i > 0) await wait(3000);
+                    if (i > 0) await wait(2000); // หน่วงเวลา 2 วินาทีตามที่คุยกัน
 
                     const res = await fetch('/api/redeem', {
                         method: 'POST',
@@ -83,24 +110,22 @@
                     });
                     const data = await res.json();
                     
-                    const isOk = data.errorMessage === "SUCCESS";
+                    const isOk = data.errorMessage === "SUCCESS" || data.errorMessage === "아이템이 지급되었습니다." || data.success === true;
                     const isUsed = data.errorCode === 24004;
-                    const itemName = (isOk && data.resultData) ? data.resultData[0].productName : null;
 
                     const row = document.createElement('div');
-                    row.className = `flex justify-between items-center p-3 bg-[#0b0f1a] border-l-4 rounded-xl ${isOk ? 'border-l-green-500' : 'border-l-orange-500'}`;
+                    row.className = `flex justify-between p-4 bg-[#0b0f1a] rounded-xl border-l-4 ${isOk ? 'border-l-emerald-500' : 'border-l-orange-500'}`;
                     
-                    let statusText = isOk ? `ได้รับ: ${itemName}` : (isUsed ? "ใช้งานแล้ว" : (data.errorMessage || "ล้มเหลว"));
-                    let statusClass = isOk ? 'text-green-500' : 'text-orange-500';
+                    let rewardName = (isOk && data.resultData && data.resultData[0].productName) ? data.resultData[0].productName : (isOk ? "รับไอเทมสำเร็จ" : (isUsed ? "ใช้งานแล้ว" : data.errorMessage));
+                    let colorClass = isOk ? "text-emerald-400" : "text-orange-500";
 
-                    row.innerHTML = `<span class="text-xs font-mono font-bold">${code}</span><span class="text-[9px] font-black ${statusClass} uppercase text-right ml-2">${statusText}</span>`;
+                    row.innerHTML = `<span class="text-xs font-mono font-bold">${code}</span><span class="text-[9px] font-black uppercase ${colorClass} text-right ml-2">${rewardName}</span>`;
                     resList.prepend(row);
                 }
-                btn.innerText = "สำเร็จทั้งหมดแล้ว";
+                btn.innerText = "เสร็จสมบูรณ์";
             } catch (e) {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ (Error 500)");
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
                 btn.disabled = false;
-                btn.innerText = "ลองใหม่อีกครั้ง";
             }
         }
     </script>
