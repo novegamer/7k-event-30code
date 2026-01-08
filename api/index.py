@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import requests
 
-# ประกาศ app ไว้ที่ระดับนอกสุดเพื่อป้องกัน TypeError ใน Vercel
 app = Flask(__name__)
 
 OFFICIAL_CODES = [
@@ -12,45 +11,62 @@ OFFICIAL_CODES = [
     "TARGETWISH", "OBLIVION", "SENASTARCRYSTAL", "SENA77MEMORY"
 ]
 
-# ใช้ Headers ตรงตามที่คุณระบุในข้อความล่าสุด
-CUSTOM_HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "User-Agent": "Mozilla/5.0 (CouponScript)",
+# ใช้ User-Agent ที่เหมือนคนใช้งานจริงที่สุด เพื่อเลี่ยงการโดนบล็อก
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
     "Origin": "https://coupon.netmarble.com",
-    "Referer": "https://coupon.netmarble.com/tskgb"
+    "Referer": "https://coupon.netmarble.com/tskgb",
+    "Accept-Language": "th-TH,th;q=0.9,en-US;q=0.8,en;q=0.7"
 }
 
 @app.route('/api/get-codes', methods=['GET'])
 def get_codes():
     return jsonify({"codes": OFFICIAL_CODES})
 
-# ขั้นตอนที่ 1: ตรวจสอบ PID (Inquiry)
 @app.route('/api/check-user', methods=['POST'])
 def check_user():
     try:
         pid = request.json.get('pid')
         url = "https://coupon.netmarble.com/api/coupon/inquiry"
         params = {"gameCode": "tskgb", "langCd": "TH_TH", "pid": pid}
-        response = requests.get(url, params=params, headers=CUSTOM_HEADERS, timeout=10)
-        return jsonify(response.json())
+        
+        response = requests.get(url, params=params, headers=HEADERS, timeout=10)
+        
+        # ตรวจสอบว่าสิ่งที่ตอบกลับมาใช่ JSON หรือไม่
+        try:
+            return jsonify(response.json())
+        except:
+            # หากไม่ใช่ JSON ให้บอกสถานะที่ได้รับมาแทน
+            return jsonify({
+                "errorCode": 500, 
+                "errorMessage": f"เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง (Status: {response.status_code})"
+            })
+            
     except Exception as e:
-        return jsonify({"errorCode": 500, "errorMessage": str(e)}), 200
+        return jsonify({"errorCode": 500, "errorMessage": str(e)})
 
-# ขั้นตอนที่ 2: แลกรางวัล (Reward) - ใช้ GET ตามรูป image_57ad69.png
 @app.route('/api/redeem', methods=['POST'])
 def redeem():
     try:
         data = request.json
         url = "https://coupon.netmarble.com/api/coupon/reward"
-        # Payload ตรงตามที่คุณต้องการ
         params = {
             "gameCode": "tskgb",
+            "couponCode": data.get('code').strip(),
             "langCd": "TH_TH",
-            "pid": data.get('pid'),
-            "couponCode": data.get('code').strip()
+            "pid": data.get('pid')
         }
-        response = requests.get(url, params=params, headers=CUSTOM_HEADERS, timeout=10)
-        return jsonify(response.json())
+        
+        response = requests.get(url, params=params, headers=HEADERS, timeout=10)
+        
+        try:
+            return jsonify(response.json())
+        except:
+            return jsonify({
+                "errorCode": 500, 
+                "errorMessage": "Netmarble บล็อกการเชื่อมต่อชั่วคราว"
+            })
+            
     except Exception as e:
-        return jsonify({"errorCode": 500, "errorMessage": str(e)}), 200
+        return jsonify({"errorCode": 500, "errorMessage": str(e)})
