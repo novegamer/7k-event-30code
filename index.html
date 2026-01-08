@@ -2,79 +2,77 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>TSKGB Cloud Redeemer</title>
+    <title>7K Rebirth Cloud Batch Redeemer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #020617; color: #f1f5f9; font-family: 'Sarabun', sans-serif; }
-        .log-box { background: #000; border: 1px solid #1e293b; height: 300px; overflow-y: auto; padding: 15px; font-family: monospace; font-size: 12px; border-radius: 12px; }
-        .status-success { color: #10b981; }
-        .status-fail { color: #ef4444; }
-    </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="bg-slate-950 text-slate-200 min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-lg bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800">
-        <h1 class="text-2xl font-bold mb-6 text-center text-indigo-400">7K REBIRTH AUTO-CLAIM</h1>
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+        <h1 class="text-xl font-bold text-center mb-6 text-indigo-400">BATCH REDEEM (CLOUD)</h1>
         
-        <input type="text" id="pid" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 mb-4 text-center text-xl font-mono text-indigo-300 outline-none focus:border-indigo-500" placeholder="กรอก Member Code (PID)">
-        
-        <button onclick="runProcess()" id="btn" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold text-lg mb-6 transition-all">
-            🚀 เริ่มเติมโค้ดผ่าน Cloud (17 รายการ)
-        </button>
-
-        <div class="flex justify-between text-[10px] uppercase font-bold text-slate-500 mb-2">
-            <span>Execution Log</span>
-            <span id="progress">0/17</span>
+        <div class="space-y-4">
+            <input type="text" id="pid" class="w-full bg-black border border-slate-700 rounded-xl p-4 text-center text-xl font-mono text-indigo-300 outline-none focus:border-indigo-500" placeholder="กรอก UID (Member Code)">
+            
+            <button onclick="startBatchRedeem()" id="btnStart" class="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2">
+                <span id="btnText">🚀 เริ่มเติมโค้ดทั้งหมด (Server-side)</span>
+            </button>
         </div>
-        <div id="log" class="log-box">
-            <div class="text-slate-600 italic">เตรียมพร้อมรันระบบหลังบ้าน...</div>
+
+        <div id="statusArea" class="mt-6 hidden">
+            <div class="flex items-center gap-3 mb-4 p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent"></div>
+                <span class="text-xs text-indigo-400">ระบบ Cloud กำลังทำงาน... กรุณารอประมาณ 1-2 นาที</span>
+            </div>
+            
+            <pre id="logBox" class="w-full bg-black rounded-xl p-4 text-[10px] font-mono text-slate-400 h-64 overflow-y-auto whitespace-pre-wrap border border-slate-800"></pre>
         </div>
     </div>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzEfHbeWoQ73gYKpyWrT1M0Tj4WNw0OXmxj64cNIT-A4QLDH6aXcJNSl9PMunwq4B5H/exec";
         
-        const CODES = ["HAPPYNEWYEAR2026", "7S7E7V7E7N7", "DANCINGPOOKI", "BRANZEBRANSEL", "GRACEOFCHAOS", "SENAHAJASENA", "CHAOSESSENCE", "77EVENT77", "100MILLIONHEARTS", "KEYKEYKEY", "POOKIFIVEKINDS", "LETSGO7K", "GOLDENKINGPEPE", "HALFGOODHALFEVIL", "DELLONSVSKRIS", "TARGETWISH", "OBLIVION"];
+        const CODES = [
+            "HAPPYNEWYEAR2026", "7S7E7V7E7N7", "DANCINGPOOKI", "BRANZEBRANSEL", 
+            "GRACEOFCHAOS", "SENAHAJASENA", "CHAOSESSENCE", "77EVENT77", 
+            "100MILLIONHEARTS", "KEYKEYKEY", "POOKIFIVEKINDS", "LETSGO7K", 
+            "GOLDENKINGPEPE", "HALFGOODHALFEVIL", "DELLONSVSKRIS", "TARGETWISH", "OBLIVION" ,"SENASTARCRYSTAL" , "SENA77MEMORY"
+        ];
 
-        async function runProcess() {
+        function startBatchRedeem() {
             const pid = document.getElementById('pid').value.trim();
-            if (!pid) return alert("กรุณาใส่ PID");
+            if(!pid) return alert("กรุณาใส่ UID");
+
+            // ล็อกหน้าจอ
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnText').innerText = "กำลังประมวลผลบน Cloud...";
+            document.getElementById('statusArea').classList.remove('hidden');
+            document.getElementById('logBox').innerText = "กำลังส่งคำขอไปยัง Google Server...\nกรุณาอย่าปิดหน้านี้จนกว่าจะเสร็จสิ้น";
+
+            // ใช้ JSONP เพื่อส่งข้อมูลและรับผลลัพธ์ข้ามโดเมน
+            const script = document.createElement('script');
+            const callbackName = 'handleResponse';
             
-            document.getElementById('btn').disabled = true;
-            const log = document.getElementById('log');
-            log.innerHTML = "";
+            // สร้างฟังก์ชันรอรับผลลัพธ์
+            window[callbackName] = function(data) {
+                document.getElementById('logBox').innerText = data.summary;
+                document.getElementById('btnStart').disabled = false;
+                document.getElementById('btnText').innerText = "✅ เติมเสร็จสิ้นแล้ว!";
+                alert("ระบบเติมโค้ดครบทุกรายการแล้วครับ");
+                delete window[callbackName];
+                document.body.removeChild(script);
+            };
 
-            for (let i = 0; i < CODES.length; i++) {
-                const code = CODES[i];
-                document.getElementById('progress').innerText = `${i+1}/${CODES.length}`;
-                
-                const div = document.createElement('div');
-                div.innerHTML = `[${new Date().toLocaleTimeString()}] Processing: ${code}...`;
-                log.appendChild(div);
-
-                try {
-                    // ส่งข้อมูลไปที่ Cloud Backend (GAS)
-                    const response = await fetch(GAS_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', // สำคัญ: เพื่อให้ส่งผ่านข้ามเว็บได้
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `pid=${pid}&code=${code}`
-                    });
-
-                    // เนื่องจากใช้ no-cors เราจะไม่เห็น response ตรงๆ 
-                    // แต่ระบบจะยิงไปเติมที่ Netmarble ให้แน่นอน 100%
-                    div.innerHTML += ` <span class="status-success">SENT ✅</span>`;
-                } catch (e) {
-                    div.innerHTML += ` <span class="status-fail">ERROR: ${e}</span>`;
-                }
-                
-                log.scrollTop = log.scrollHeight;
-                await new Promise(r => setTimeout(r, 1000)); // หน่วงเวลา 1 วินาที
-            }
-            
-            document.getElementById('btn').disabled = false;
-            alert("ระบบ Cloud ทำการส่งโค้ดทั้งหมดเรียบร้อยแล้ว!");
+            // ยิง Request แบบ GET (ส่งโค้ดทั้งหมดไปในทีเดียว)
+            script.src = `${GAS_URL}?pid=${pid}&codes=${CODES.join(',')}&callback=${callbackName}`;
+            document.body.appendChild(script);
         }
+
+        window.onload = () => {
+            const saved = localStorage.getItem('tsk_pid_cloud');
+            if(saved) document.getElementById('pid').value = saved;
+        };
+        
+        document.getElementById('pid').oninput = (e) => localStorage.setItem('tsk_pid_cloud', e.target.value);
     </script>
 </body>
 </html>
